@@ -1,11 +1,14 @@
 package contacts.contactsapptest_james;
 
+import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -14,9 +17,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.concurrent.ExecutionException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -29,18 +34,34 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         try {
-            getHttp();
-            String responseText = getHttp();
-            JSONObject mainResponseObject = new JSONObject(responseText);
+            URL url = new URL("http://jsonplaceholder.typicode.com/users");
+            String str = new DownloadUsers().execute(url).get();
+
 
             TextView tv = (TextView) findViewById(R.id.text);
-            tv.setText(mainResponseObject.toString());
+            JSONArray ob = new JSONArray(str);
 
-        } catch (IOException e) {
+
+            Toast.makeText(getApplicationContext(), "toast is working from here", Toast.LENGTH_LONG).show();
+            tv.setText(ob.toString());
+//            Toast.makeText(getApplicationContext(), ob.getJSONObject("1").toString() + " : ", Toast.LENGTH_LONG).show();
+
+
+
+
+        } catch (MalformedURLException e) {
             e.printStackTrace();
-        } catch (JSONException e) {
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }catch (JSONException e) {
             e.printStackTrace();
         }
+
+
+
+
     }
 
     @Override
@@ -65,23 +86,43 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    public String getHttp() throws IOException {
-        StringBuilder response  = new StringBuilder();
+
+    class DownloadUsers extends AsyncTask<URL, Void, String> {
+        protected String doInBackground(URL... urls) {
+            URL url = urls[0];
+            String s ="";
+            try {
+
+                StringBuilder response = new StringBuilder();
+
+                HttpURLConnection httpconn = null;
+
+                httpconn = (HttpURLConnection) url.openConnection();
 
 
-        URL url = new URL("http://jsonplaceholder.typicode.com/users");
-        HttpURLConnection httpconn = (HttpURLConnection)url.openConnection();
-        if (httpconn.getResponseCode() == HttpURLConnection.HTTP_OK)
-        {
-            BufferedReader input = new BufferedReader(new InputStreamReader(httpconn.getInputStream()),8192);
-            String strLine = null;
-            while ((strLine = input.readLine()) != null)
-            {
-                response.append(strLine);
+                if (httpconn.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                    BufferedReader input = new BufferedReader(new InputStreamReader(httpconn.getInputStream()), 8192);
+                    String strLine = null;
+                    while ((strLine = input.readLine()) != null) {
+                        response.append(strLine);
+                    }
+                    input.close();
+                }
+
+                s = response.toString();
+
+
+
+            } catch (IOException e){
+                e.printStackTrace();
             }
-            input.close();
-        }
-        return response.toString();
 
+
+
+            return s;
     }
+
+
+}
+
 }
