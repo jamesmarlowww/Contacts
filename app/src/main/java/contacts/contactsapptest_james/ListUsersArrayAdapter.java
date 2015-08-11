@@ -10,18 +10,16 @@ import android.widget.TextView;
 
 import java.util.List;
 
-import contacts.contactsapptest_james.R;
-
 /**
  * Created by james on 8/11/2015.
  */
-public class ListUsersArrayAdapter extends ArrayAdapter<ListUsers.User> {
+public class ListUsersArrayAdapter extends ArrayAdapter<User> {
 
-    private List<ListUsers.User> list;
+    private List<User> list;
     private int resorurseID;
     private Context context;
 
-    public ListUsersArrayAdapter(Context context, int resourseID, List<ListUsers.User> list) {
+    public ListUsersArrayAdapter(Context context, int resourseID, List<User> list) {
         super(context, resourseID, list);
         this.context = context;
         this.resorurseID = resourseID;
@@ -37,12 +35,13 @@ public class ListUsersArrayAdapter extends ArrayAdapter<ListUsers.User> {
         LayoutInflater inflater = ((Activity) context).getLayoutInflater();
         rowView = inflater.inflate(resorurseID, parent, false);
 
-        TextView name = (TextView) rowView.findViewById(R.id.username);
+        TextView name = (TextView) rowView.findViewById(R.id.mainMessage);
         TextView email = (TextView) rowView.findViewById(R.id.subTitle);
 
         name.setText(list.get(pos).name);
         email.setText(list.get(pos).email);
         return  rowView;
+
 
     }
 }

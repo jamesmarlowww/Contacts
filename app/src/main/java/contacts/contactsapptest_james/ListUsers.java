@@ -29,6 +29,7 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -38,12 +39,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-public class ListUsers extends AppCompatActivity {
+public class ListUsers extends AppCompatActivity implements Serializable {
 
     private Object http;
     String stringUrl = "http://jsonplaceholder.typicode.com/users";
     private List<User> list;
     private ListView listView;
+    private JSONArray jsonArray;
     private ListUsersArrayAdapter arrayAdapter;
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -70,11 +72,11 @@ public class ListUsers extends AppCompatActivity {
 
 
             TextView tv = (TextView) findViewById(R.id.text);
-            JSONArray ob = new JSONArray(str);
+            jsonArray = new JSONArray(str);
 
-            for (int i = 0; i < ob.length(); i++) {
-                JSONObject jsonObject = new JSONObject(ob.get(i).toString());
-                this.list.add(new User(jsonObject.getString("name"), jsonObject.getString("username"), jsonObject.getString("email"), jsonObject.getString("phone"), jsonObject.getString("address"), jsonObject.getString("website"), jsonObject.getString("company")));
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject jsonObject = new JSONObject(jsonArray.get(i).toString());
+                this.list.add(new User(jsonObject.getString("name"), jsonObject.getString("username"), jsonObject.getString("email"), jsonObject.getString("phone"), jsonObject.getString("address"), jsonObject.getString("website"), new JSONObject(jsonObject.getString("company")).toString()));
 
             }
 
@@ -101,10 +103,17 @@ public class ListUsers extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parentAdapter, View view, int position,
                                     long id) {
                 //code for onClick item.
-                //
-
-                createArrayFromUser(position);
                 Intent i = new Intent(getApplicationContext(), DisplayUserInfo.class);
+                User user = list.get(position);
+
+//                i.putExtra("user", (Parcelable) list.get(position));
+                String[] info = {user.username, user.phone, user.address, user.website, user.company};
+                String[] subtitle = {"USERNAME", "PHONE", "ADDRESS", "WEBSITE", "COMPANY"};
+
+                Bundle bundle = new Bundle();
+                bundle.putParcelable("user", (Parcelable) list.get(position));
+                i.putExtras(bundle);
+
                 startActivity(i);
 
             }
@@ -113,19 +122,9 @@ public class ListUsers extends AppCompatActivity {
 
     }
 
-    private List<UserInfo> createArrayFromUser(int i) {
-        List<UserInfo> info = new ArrayList<>();
-        User user = list.get(i);
-        info.add(new UserInfo(user.username, "USERNAME"));
-        info.add(new UserInfo(user.phone, "PHONE"));
-        info.add(new UserInfo(user.address, "ADDRESS"));
-        info.add(new UserInfo(user.website, "WEBSITE"));
-        info.add(new UserInfo(user.company, "COMPANY"));
-        return info;
-    }
 
     private void sortListAscending() {
-        if(list.size() >0) {
+        if (list.size() > 0) {
             Collections.sort(list, new Comparator<User>() {
                 @Override
                 public int compare(User object1, User object2) {
@@ -136,7 +135,7 @@ public class ListUsers extends AppCompatActivity {
     }
 
     private void sortListDescending() {
-        if(list.size() >0) {
+        if (list.size() > 0) {
             Collections.sort(list, new Comparator<User>() {
                 @Override
                 public int compare(User object1, User object2) {
@@ -172,26 +171,6 @@ public class ListUsers extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    public class User {
-        String username;
-        String name;
-        String email;
-        String phone;
-        String address;
-        String website;
-        String company;
-
-        private User(String name, String username, String email, String phone, String address, String website, String company) {
-            this.name = name;
-            this.username = username;
-            this.email = email;
-            this.phone = phone;
-            this.address = address;
-            this.website = website;
-            this.company = company;
-        }
-
-    }
 
     class DownloadUsers extends AsyncTask<URL, Void, String> {
         ProgressDialog progressDialog = new ProgressDialog(ListUsers.this);
@@ -242,28 +221,5 @@ public class ListUsers extends AppCompatActivity {
         }
     }
 
-    public class UserInfo implements Parcelable {
-        private String subtitle;
-        private String info;
-
-
-
-        public UserInfo(String info, String subtitle) {
-            this.info = info;
-            this.subtitle = subtitle;
-        }
-
-        @Override
-        public int describeContents() {
-            return 0;
-        }
-
-        @Override
-        public void writeToParcel(Parcel dest, int flags) {
-
-        }
-
-
-    }
 
 }
