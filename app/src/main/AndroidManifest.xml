@@ -18,7 +18,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".DisplayUserInfo"
+            android:name=".DisplayUserDetail"
             android:label="change this text" >
         </activity>
     </application>

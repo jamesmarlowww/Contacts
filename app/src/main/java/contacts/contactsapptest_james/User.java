@@ -5,6 +5,10 @@ import android.os.Parcelable;
 
 /**
  * Created by james on 8/11/2015.
+ *
+ * Stores the users downloaded as a java object.
+ * Instances are used in an ArrayList
+ * Implements parcelable so an instance of this class can be used in a putExtra when starting a new intent
  */
 public class User implements Parcelable{
     public String username;

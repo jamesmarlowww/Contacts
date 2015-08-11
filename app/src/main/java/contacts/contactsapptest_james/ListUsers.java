@@ -2,7 +2,6 @@ package contacts.contactsapptest_james;
 
 
 import android.annotation.TargetApi;
-import android.app.ActionBar;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Color;
@@ -10,7 +9,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
@@ -20,7 +18,6 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ListView;
-import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -37,12 +34,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
+/**
+ * This is the main class. It downloads json from the server, puts it into java User objects
+ * these user objects are put into an array list. This array list is used in the arrayAdapter for the list view
+ *
+ */
 public class ListUsers extends AppCompatActivity implements Serializable {
 
-    private Object http;
-    String stringUrl = "http://jsonplaceholder.typicode.com/users";
     private List<User> list;
     private ListView listView;
     private JSONArray jsonArray;
@@ -54,64 +53,63 @@ public class ListUsers extends AppCompatActivity implements Serializable {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //change the action bar and notification bar color
+        //change the action and notification bar colour
         getSupportActionBar().setBackgroundDrawable(new ColorDrawable(Color.parseColor("#3f51b5")));
         Window window = this.getWindow();
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
         window.setStatusBarColor(Color.parseColor("#303f97"));
 
-
+        //empty list of java objects, of the downloaded users
         list = new ArrayList<>();
 
         try {
+            //start download
             URL url = new URL("http://jsonplaceholder.typicode.com/users");
-            AsyncTask user = new DownloadUsers().execute(url);
-            user.getStatus();
-            String str = (String) user.get();
+            new DownloadUsers().execute(url);
+
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+    }
 
 
-            TextView tv = (TextView) findViewById(R.id.text);
-            jsonArray = new JSONArray(str);
+    public void handleJsonResult(JSONArray arr) {
+        try {
+            jsonArray = arr;
 
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject jsonObject = new JSONObject(jsonArray.get(i).toString());
-                this.list.add(new User(jsonObject.getString("name"), jsonObject.getString("username"), jsonObject.getString("email"), jsonObject.getString("phone"), jsonObject.getString("address"), jsonObject.getString("website"), new JSONObject(jsonObject.getString("company")).toString()));
+
+                //format the address and company text
+                JSONObject add = new JSONObject(jsonObject.getString("address"));
+                String address = add.getString("street") + ", " + add.getString("suite") + "\n" + add.getString("city") + ", " + add.getString("zipcode");
+                JSONObject com = new JSONObject(jsonObject.getString("company"));
+                String company = com.getString("name") + "\n" + com.getString("catchPhrase") + "\n" + com.getString("bs");
+
+                list.add(new User(jsonObject.getString("name"), jsonObject.getString("username"), jsonObject.getString("email"), jsonObject.getString("phone"), address, jsonObject.getString("website"), company));
 
             }
 
 
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
-
         sortListAscending();
 
-
+        //create new array adapter and assign it to the list view
         listView = (ListView) findViewById(R.id.listUsers);
         arrayAdapter = new ListUsersArrayAdapter(this, R.layout.row, list);
         listView.setAdapter(arrayAdapter);
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            public void onItemClick(AdapterView<?> parentAdapter, View view, int position,
-                                    long id) {
-                //code for onClick item.
-                Intent i = new Intent(getApplicationContext(), DisplayUserInfo.class);
-                User user = list.get(position);
+            public void onItemClick(AdapterView<?> parentAdapter, View view, int position,long id) {
 
-//                i.putExtra("user", (Parcelable) list.get(position));
-                String[] info = {user.username, user.phone, user.address, user.website, user.company};
-                String[] subtitle = {"USERNAME", "PHONE", "ADDRESS", "WEBSITE", "COMPANY"};
+                Intent i = new Intent(getApplicationContext(), DisplayUserDetail.class);
 
                 Bundle bundle = new Bundle();
-                bundle.putParcelable("user", (Parcelable) list.get(position));
+                bundle.putParcelable("user", list.get(position));
                 i.putExtras(bundle);
 
                 startActivity(i);
@@ -172,52 +170,59 @@ public class ListUsers extends AppCompatActivity implements Serializable {
     }
 
 
-    class DownloadUsers extends AsyncTask<URL, Void, String> {
-        ProgressDialog progressDialog = new ProgressDialog(ListUsers.this);
+    class DownloadUsers extends AsyncTask<URL, Void, JSONArray> {
 
-
-        protected String doInBackground(URL... urls) {
-            URL url = urls[0];
-            String responseStr = "";
-            progressDialog.show();
-            try {
-
-                StringBuilder response = new StringBuilder();
-                HttpURLConnection httpconn = null;
-                httpconn = (HttpURLConnection) url.openConnection();
-
-                if (httpconn.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                    BufferedReader input = new BufferedReader(new InputStreamReader(httpconn.getInputStream()), 8192);
-                    String strLine = null;
-                    while ((strLine = input.readLine()) != null) {
-                        response.append(strLine);
-                    }
-                    input.close();
-                }
-
-                responseStr = response.toString();
-
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-
-            return responseStr;
-        }
+        ProgressDialog progressDialog;
 
         @Override
         protected void onPreExecute() {
-            super.onPreExecute();
+            progressDialog = new ProgressDialog(ListUsers.this);
             progressDialog.setMessage("Loading Contacts...");
             progressDialog.show();
+            super.onPreExecute();
+        }
+
+
+        @Override
+        protected JSONArray doInBackground(URL... urls) {
+            URL url = urls[0];
+            StringBuilder response = new StringBuilder();
+
+
+            try {
+
+                HttpURLConnection httpConnection = null;
+                httpConnection = (HttpURLConnection) url.openConnection();
+
+                if (httpConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                    BufferedReader input = new BufferedReader(new InputStreamReader(httpConnection.getInputStream()), 8192);
+                    String strLine = null;
+
+                    while ((strLine = input.readLine()) != null) {
+                        response.append(strLine);
+                    }
+
+                    input.close();
+                }
+
+                jsonArray = new JSONArray(response.toString());
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+            return jsonArray;
 
         }
 
+
         @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
+        protected void onPostExecute(JSONArray arr) {
             progressDialog.dismiss();
+            handleJsonResult(arr);
+
         }
     }
 
